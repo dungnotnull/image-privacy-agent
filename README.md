@@ -1,4 +1,4 @@
-# Image Privacy Agent
+<h1 align="center">Image Privacy Agent</h1>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white" alt="Python 3.12"/>
@@ -40,7 +40,7 @@
 
 ## Architecture
 
-`
+```
 User App (ChatGPT client / API caller)
         |
         |  POST /openai/* or /anthropic/*
@@ -77,7 +77,7 @@ LLM API (OpenAI / Anthropic / Ollama)
         |
         v
 MemoryManager (SQLite - session store, cost log, paper hashes)
-`
+```
 
 ---
 
@@ -91,7 +91,7 @@ MemoryManager (SQLite - session store, cost log, paper hashes)
 
 ### Installation
 
-`ash
+```
 # Clone the repository
 git clone https://github.com/dungnotnull/image-privacy-agent.git
 cd image-privacy-agent
@@ -102,34 +102,34 @@ source venv/bin/activate  # Windows: venv\\Scripts\\activate
 
 # Install dependencies
 pip install -r requirements.txt
-`
+```
 
 ### Configuration
 
-`ash
+```
 # Copy environment template
 cp config/.env.example .env
 
 # Edit .env with your API keys (optional - proxy works without them)
 nano .env
-`
+```
 
 Minimum .env for threat analysis:
-`ash
+```
 ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-...
 PRIVACY_MASTER_SECRET=
-`
+```
 
 Maximum privacy (offline only):
-`ash
+```
 PRIVACY_MODE=true
 OLLAMA_BASE_URL=http://localhost:11434
-`
+```
 
 ### Start the Proxy
 
-```bash
+```
 # Development mode
 python agent/main.py serve --port 8003 --epsilon 4 --mode pixel
 
@@ -141,7 +141,7 @@ docker-compose up -d
 
 Point your application at the local proxy instead of the real API:
 
-```bash
+```
 export OPENAI_BASE_URL=http://localhost:8003/openai
 export ANTHROPIC_BASE_URL=http://localhost:8003/anthropic
 ```
@@ -152,7 +152,7 @@ That is it. Every image you send is now automatically protected.
 
 ## CLI Commands
 
-```bash
+```
 # Start proxy server
 python agent/main.py serve --host 127.0.0.1 --port 8003 --epsilon 4
 
@@ -190,7 +190,7 @@ If any gate fails, the request is **rejected with HTTP 422** and the original im
 
 ## Running Tests
 
-```bash
+```
 # Run all tests
 pytest tests/test_agent.py -v
 
@@ -204,7 +204,7 @@ pytest tests/test_agent.py::TestProxyIntegration -v
 
 ## Docker Deployment
 
-```bash
+```
 # CPU mode
 docker-compose up -d privacy-proxy
 
