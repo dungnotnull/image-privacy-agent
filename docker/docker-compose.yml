@@ -1,0 +1,94 @@
+version: "3.9"
+
+services:
+  # ──────────────────────────────────────────────
+  # Image Privacy Proxy (CPU mode)
+  # ──────────────────────────────────────────────
+  privacy-proxy:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: image-privacy-agent:latest
+    container_name: image-privacy-proxy
+    ports:
+      - "8003:8003"
+    volumes:
+      - privacy_data:/app/data
+      - privacy_models:/app/models
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - PRIVACY_MASTER_SECRET=${PRIVACY_MASTER_SECRET:-change-this-in-production}
+      - PRIVACY_MODE=${PRIVACY_MODE:-false}
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3}
+      - EPSILON_INT=${EPSILON_INT:-4}
+      - PROTECTION_MODE=${PROTECTION_MODE:-pixel}
+      - REAL_OPENAI_BASE_URL=https://api.openai.com
+      - REAL_ANTHROPIC_BASE_URL=https://api.anthropic.com
+      - REAL_OLLAMA_BASE_URL=http://ollama:11434
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DATA_DIR=/app/data
+      - MODELS_DIR=/app/models
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - privacy_net
+    depends_on:
+      - ollama
+
+  # ──────────────────────────────────────────────
+  # Image Privacy Proxy (GPU mode — optional)
+  # ──────────────────────────────────────────────
+  privacy-proxy-gpu:
+    extends:
+      service: privacy-proxy
+    container_name: image-privacy-proxy-gpu
+    profiles: ["gpu"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # ──────────────────────────────────────────────
+  # Ollama (local LLM for offline/privacy mode)
+  # ──────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-privacy
+    profiles: ["ollama"]
+    volumes:
+      - privacy_ollama_models:/root/.ollama
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    restart: unless-stopped
+    networks:
+      - privacy_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  privacy_data:
+    name: privacy_data
+  privacy_models:
+    name: privacy_models
+  privacy_ollama_models:
+    name: privacy_ollama_models
+
+networks:
+  privacy_net:
+    driver: bridge

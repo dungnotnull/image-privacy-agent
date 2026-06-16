@@ -1,0 +1,78 @@
+agent:
+  name: image-privacy-agent
+  version: "1.0.0"
+  description: "Reversible adversarial noise proxy for LLM API image privacy protection"
+
+server:
+  host: "127.0.0.1"
+  port: 8003
+  log_level: "info"
+  max_request_size_mb: 50
+
+protection:
+  epsilon_int: 4            # Noise strength in gray levels (1-32). 4 = 4/255 ≈ 1.6%
+  mode: "pixel"             # "pixel" | "combined" (pixel + DCT masking)
+  dct_block_size: 8         # Block size for DCT masking (8 or 16)
+  dct_zeroed_coeffs: 3      # Number of high-freq coefficients to zero per block
+  max_image_size_mb: 20     # Reject images larger than this
+
+quality_gates:
+  ssim_threshold: 0.95      # Minimum SSIM between original and protected
+  psnr_threshold: 35.0      # Minimum PSNR (dB) — lower = more noise, less acceptable
+  clip_threshold: 0.92      # Minimum CLIP cosine similarity
+  recovery_ssim: 0.99       # Minimum SSIM on unedited regions after reversal
+  recovery_mae: 2.0         # Maximum mean absolute error on unedited pixels
+
+llm:
+  provider_priority: ["claude", "openai", "ollama"]
+  claude_model: "claude-opus-4-8"
+  openai_model: "gpt-4o"
+  ollama_model: "llama3"
+  max_cost_per_session_usd: 0.50
+  retry_attempts: 3
+  retry_backoff_base: 1.0   # seconds (exponential: 1, 2, 4)
+
+hf_models:
+  clip: "openai/clip-vit-large-patch14"
+  vit: "google/vit-base-patch16-224"
+  bge_large: "BAAI/bge-large-en-v1.5"
+  models_dir: "./models"
+  idle_unload_seconds: 600
+  preload_on_startup: false  # Set true to eagerly load CLIP at startup
+
+upstream_apis:
+  openai_base_url: "https://api.openai.com"
+  anthropic_base_url: "https://api.anthropic.com"
+  ollama_base_url: "http://localhost:11434"
+  request_timeout_seconds: 120
+
+knowledge_updater:
+  schedule: "weekly"
+  cron: "0 2 * * 0"         # Sunday 02:00 local
+  arxiv_categories: ["cs.CR", "cs.CV"]
+  max_papers_per_run: 20
+  recency_days: 90
+  min_score: 0.3
+
+memory:
+  db_path: "./data/privacy_agent.db"
+  session_retention_days: 90
+  cost_summary_days: 30
+
+threat_analyzer:
+  face_detection: true       # Requires opencv-python
+  text_detection: true       # Heuristic edge-density based
+  exif_analysis: true
+  risk_levels:
+    low:
+      epsilon_int: 2
+      mode: "pixel"
+    medium:
+      epsilon_int: 4
+      mode: "pixel"
+    high:
+      epsilon_int: 4
+      mode: "pixel"
+    critical:
+      epsilon_int: 8
+      mode: "combined"
